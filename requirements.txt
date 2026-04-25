@@ -1,0 +1,11 @@
+pandas
+matplotlib
+seaborn
+plotly
+scipy
+dash
+requests
+wbdata
+nbformat
+ipykernel
+dash-bootstrap-components
