@@ -21,7 +21,7 @@ class WorldBankLoader:
         if not os.path.exists(cache_dir):
             os.makedirs(cache_dir)
 
-    def fetch_country_data(self, country_code, indicator="population", start_year=1960, end_year=2023):
+    def fetch_country_data(self, country_code, indicator="population", start_year=1960, end_year=2025):
         """
         Fetches data for a single country and specific indicator.
         """
@@ -68,10 +68,49 @@ class WorldBankLoader:
         df.to_csv(cache_file, index=False)
         return df
 
-    def fetch_multiple_countries(self, country_codes, indicator="population", start_year=1960, end_year=2023):
+    def fetch_multiple_countries(self, country_codes, indicator="population", start_year=1960, end_year=2025):
         """
         Fetches and combines data for multiple countries and a single indicator.
         """
+        # Bulk fetch attempt
+        country_str = ";".join(country_codes)
+        cache_file = os.path.join(self.cache_dir, f"{indicator}_bulk_{hash(country_str)}_{start_year}_{end_year}.csv")
+        
+        if os.path.exists(cache_file):
+            print(f"Loading bulk {indicator} from cache...")
+            return pd.read_csv(cache_file)
+            
+        indicator_code = self.INDICATORS.get(indicator, indicator)
+        url = self.BASE_URL.format(country_code=country_str, indicator_code=indicator_code)
+        
+        params = {
+            "format": "json",
+            "date": f"{start_year}:{end_year}",
+            "per_page": 10000
+        }
+        
+        try:
+            print(f"Bulk fetching {indicator} for {len(country_codes)} countries...")
+            response = requests.get(url, params=params, timeout=20)
+            if response.status_code == 200:
+                data = response.json()
+                if len(data) >= 2 and isinstance(data[1], list):
+                    records = []
+                    for entry in data[1]:
+                        if entry.get("countryiso3code"):
+                            records.append({
+                                "country": entry["country"]["value"],
+                                "iso_code": entry["countryiso3code"],
+                                "year": int(entry["date"]),
+                                indicator: entry["value"]
+                            })
+                    df = pd.DataFrame(records)
+                    df.to_csv(cache_file, index=False)
+                    return df
+        except Exception as e:
+            print(f"Error in bulk fetch for {indicator}: {e}")
+            
+        print("Falling back to individual fetching...")
         dfs = []
         for code in country_codes:
             try:
@@ -80,11 +119,13 @@ class WorldBankLoader:
                 print(f"Error fetching {code} ({indicator}): {e}")
         
         if not dfs:
-            return pd.DataFrame()
+            return pd.DataFrame(columns=["country", "iso_code", "year", indicator])
             
-        return pd.concat(dfs, ignore_index=True)
+        df_concat = pd.concat(dfs, ignore_index=True)
+        df_concat.to_csv(cache_file, index=False)
+        return df_concat
 
-    def fetch_all_indicators(self, country_codes, start_year=1960, end_year=2023):
+    def fetch_all_indicators(self, country_codes, start_year=1960, end_year=2025):
         """
         Fetches and merges all supported indicators for multiple countries.
         """

@@ -1,3 +1,4 @@
+# Force Reload
 import dash
 from dash import dcc, html, Input, Output, State
 import dash_bootstrap_components as dbc
@@ -9,13 +10,13 @@ from .preprocess import preprocess_population_data
 from .analysis import PopulationAnalyzer
 
 # Initialize App with a premium theme
-app = dash.Dash(__name__, external_stylesheets=[dbc.themes.LUX])
+app = dash.Dash(__name__, external_stylesheets=[dbc.themes.CYBORG])
 server = app.server
 
 # Data Initial Load
 loader = WorldBankLoader(cache_dir="data")
 # Default countries for initial view
-DEFAULT_COUNTRIES = ["WLD", "CHN", "IND", "USA", "IDN", "BRA", "NGA"]
+DEFAULT_COUNTRIES = ["WLD", "CHN", "IND", "USA", "IDN", "PAK", "NGA", "BRA", "BGD", "RUS", "MEX", "ETH", "JPN", "PHL", "EGY"]
 raw_df = loader.fetch_all_indicators(DEFAULT_COUNTRIES)
 df = preprocess_population_data(raw_df)
 
@@ -105,11 +106,11 @@ def update_main_charts(selected_countries, year_range):
     
     # 1. Line Chart (Population)
     line_fig = px.line(filtered_df, x='year', y='population', color='country', 
-                       title="Population Growth Over Time", template="plotly_white")
+                       title="Population Growth Over Time", template="plotly_dark")
     
     # 2. Area Chart (Cumulative Population)
     area_fig = px.area(filtered_df, x='year', y='population', color='country',
-                       title="Cumulative Population Trends", template="plotly_white")
+                       title="Cumulative Population Trends", template="plotly_dark")
     
     latest_year = year_range[1]
     latest_df = df[df['year'] == latest_year]
@@ -118,26 +119,27 @@ def update_main_charts(selected_countries, year_range):
     # 3. Bar Chart (Top 10 in selected year)
     bar_df = latest_df.nlargest(10, 'population')
     bar_fig = px.bar(bar_df, x='population', y='country', orientation='h',
-                     title=f"Top 10 Global Populations in {latest_year}", template="plotly_white")
+                     title=f"Top 10 Global Populations in {latest_year}", template="plotly_dark")
     
     # 4. Pie Chart (Share of Selected Countries)
     pie_fig = px.pie(selected_latest_df, values='population', names='country',
-                     title=f"Population Distribution in {latest_year}", hole=0.4)
+                     title=f"Population Distribution in {latest_year}", hole=0.4, template="plotly_dark")
     
     # 5. Map
     map_fig = px.choropleth(latest_df, locations="iso_code", color="population",
                              hover_name="country", title=f"Global Population Density ({latest_year})",
-                             color_continuous_scale="Viridis")
+                             color_continuous_scale="Viridis", template="plotly_dark")
     
     # 6. Death Rate Chart
     death_fig = px.line(filtered_df, x='year', y='death_rate', color='country',
-                        title="Crude Death Rate (per 1,000 people)", template="plotly_white")
+                        title="Crude Death Rate (per 1,000 people)", template="plotly_dark")
     
-    # 7. Migration Chart
-    migration_fig = px.line(filtered_df, x='year', y='net_migration', color='country',
-                            title="Net Migration over Time", template="plotly_white")
+    # 7. Simple Migration Chart (Average over selected period)
+    mig_avg = filtered_df.groupby('country')['net_migration'].mean().reset_index()
+    mig_fig = px.bar(mig_avg, x='country', y='net_migration', color='country',
+                     title="Average Net Migration", template="plotly_dark")
     
-    return line_fig, area_fig, bar_fig, pie_fig, map_fig, death_fig, migration_fig
+    return line_fig, area_fig, bar_fig, pie_fig, map_fig, death_fig, mig_fig
 
 @app.callback(
     [Output('forecast-country', 'options'),
@@ -163,7 +165,7 @@ def update_forecast(target_country, selected_countries):
     if 'log_prediction' in preds:
         fig.add_trace(go.Scatter(x=preds['year'], y=preds['log_prediction'], name='Logistic Forecast', line=dict(dash='dot')))
         
-    fig.update_layout(title=f"Population Forecast for {target_country} to 2070+", template="plotly_white")
+    fig.update_layout(title=f"Population Forecast for {target_country} to 2070+", template="plotly_dark")
     return options, fig
 
 if __name__ == '__main__':
