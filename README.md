@@ -42,5 +42,5 @@ population_growth_analysis/
    ```
 
 ## Design Aesthetics
-The dashboard uses the `LUX` theme for a premium, professional look, and visualizations are configured with modern color palettes good for the more acurate thing
+The dashboard uses this `LUX` theme for a premium, professional looks, and visualizations are configured with modern color palettes good for the more acurate thing
 .
