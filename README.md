@@ -1,6 +1,6 @@
 # Population Growth Analysis Project
 
-A comprehensive tool for analyzing, visualizing, and forecasting global population trends using World Bank data.
+A comprehensive tool for analyzing, visualizing, and forecasting global population trends using World Bank datas.
 
 ## Features
 - **Data Ingestion**: Automatic fetching from World Bank API with local CSV caching.
